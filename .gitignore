@@ -39,6 +39,6 @@ _build
 *.pkl
 *.zarr
 *.npz
-
+*.STL
 **/assets/
 artifacts/

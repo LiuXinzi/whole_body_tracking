@@ -1,0 +1,140 @@
+Men Robot PKL Data Format Specification
+========================================
+
+The PKL file is a Python pickle file containing a dictionary with the following structure:
+
+  {
+    "<sequence_index>": {
+      "dof":               numpy array, shape (N, 22), dtype float64
+      "dof_vel":           numpy array, shape (N, 22), dtype float64
+      "root_trans_offset": numpy array, shape (N, 3),  dtype float64
+      "root_rot":          numpy array, shape (N, 4),  dtype float64
+      "contact_mask":      numpy array, shape (N, 2),  dtype float64
+      "torso_link_pos":    numpy array, shape (N, 3),  dtype float64
+      "torso_link_ori":    numpy array, shape (N, 4),  dtype float64
+      "fps":               int
+    }
+  }
+
+Where N = number of frames in the motion sequence.
+The sequence_index key is a string like "0", "1", "2", etc.
+
+------------------------------------------------------------------------
+Field Details
+------------------------------------------------------------------------
+
+1. dof (N, 22) - Joint angles in radians
+   Order (22 joints):
+     [0]  left_hip_pitch_joint
+     [1]  left_hip_roll_joint
+     [2]  left_hip_yaw_joint
+     [3]  left_knee_joint
+     [4]  left_ankle_roll_joint
+     [5]  left_ankle_pitch_joint
+     [6]  right_hip_pitch_joint
+     [7]  right_hip_roll_joint
+     [8]  right_hip_yaw_joint
+     [9]  right_knee_joint
+     [10] right_ankle_roll_joint
+     [11] right_ankle_pitch_joint
+     [12] waist_yaw_joint
+     [13] waist_pitch_joint
+     [14] left_shoulder_pitch_joint
+     [15] left_shoulder_roll_joint
+     [16] left_shoulder_yaw_joint
+     [17] left_elbow_joint
+     [18] right_shoulder_pitch_joint
+     [19] right_shoulder_roll_joint
+     [20] right_shoulder_yaw_joint
+     [21] right_elbow_joint
+
+2. dof_vel (N, 22) - Joint velocities in rad/s
+   Same joint order as dof.
+
+3. root_trans_offset (N, 3) - Root (pelvis_link) translation in world frame
+     [0] x  (forward)
+     [1] y  (left)
+     [2] z  (up)
+
+4. root_rot (N, 4) - Root (pelvis_link) orientation as quaternion
+     [0] x
+     [1] y
+     [2] z
+     [3] w
+
+5. contact_mask (N, 2) - Binary foot contact labels
+     [0] left_contact   (1.0 = contact, 0.0 = no contact)
+     [1] right_contact  (1.0 = contact, 0.0 = no contact)
+
+6. torso_link_pos (N, 3) - Torso link (torso_yaw_Link) position in world frame
+     [0] x
+     [1] y
+     [2] z
+
+7. torso_link_ori (N, 4) - Torso link orientation as quaternion
+     [0] x
+     [1] y
+     [2] z
+     [3] w
+
+8. fps (int) - Frames per second of the motion data (typically 60)
+
+------------------------------------------------------------------------
+Joint Grouping
+------------------------------------------------------------------------
+
+  Legs (12 joints):   indices 0-11
+    Left leg:         indices 0-5
+    Right leg:        indices 6-11
+
+  Waist (2 joints):   indices 12-13
+    waist_yaw:        index 12
+    waist_pitch:      index 13
+
+  Arms (8 joints):    indices 14-21
+    Left arm:         indices 14-17
+    Right arm:        indices 18-21
+
+------------------------------------------------------------------------
+Coordinate Frame Conventions
+------------------------------------------------------------------------
+
+  - Root frame: pelvis_link (free-floating base)
+  - Torso frame: torso_yaw_Link (the link after waist joints)
+  - World frame: Z-up, X-forward
+  - Quaternion convention: (x, y, z, w)
+
+------------------------------------------------------------------------
+Notes
+------------------------------------------------------------------------
+
+  - The last frame in each sequence has all velocities (dof_vel) set to zero.
+  - The men robot has 22 DOF total: 12 leg + 2 waist + 8 arm.
+  - Joints NOT included in this PKL (present in URDF but excluded):
+      head_yaw_joint, head_roll_joint, head_pitch_joint,
+      left_wrist_yaw_joint, left_wrist_roll_joint, left_wrist_pitch_joint,
+      right_wrist_yaw_joint, right_wrist_roll_joint, right_wrist_pitch_joint
+  - The URDF model is located at: robot_descriptions/models/men/urdf/model.urdf
+
+------------------------------------------------------------------------
+Example Python code to read the PKL
+------------------------------------------------------------------------
+
+  import pickle
+  import numpy as np
+
+  with open("motion_0.pkl", "rb") as f:
+      data = pickle.load(f)
+
+  seq = data["0"]  # first sequence
+  joint_angles = seq["dof"]        # (N, 22)
+  joint_vels   = seq["dof_vel"]    # (N, 22)
+  root_pos     = seq["root_trans_offset"]  # (N, 3)
+  root_quat    = seq["root_rot"]   # (N, 4) xyzw
+  contacts     = seq["contact_mask"]  # (N, 2)
+  torso_pos    = seq["torso_link_pos"]  # (N, 3)
+  torso_quat   = seq["torso_link_ori"]  # (N, 4) xyzw
+  fps          = seq["fps"]        # int
+
+  print(f"Frames: {joint_angles.shape[0]}, FPS: {fps}")
+  print(f"Duration: {joint_angles.shape[0] / fps:.2f} seconds")

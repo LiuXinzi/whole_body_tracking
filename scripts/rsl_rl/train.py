@@ -97,17 +97,64 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.seed = agent_cfg.seed
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
-    # load the motion file from the wandb registry
+    # normalize motion artifact path
+    def normalize_wandb_artifact_path(path: str) -> str:
+        if ":" not in path:
+            return path + ":latest"
+        else:
+            return path
     registry_name = args_cli.registry_name
-    if ":" not in registry_name:  # Check if the registry name includes alias, if not, append ":latest"
-        registry_name += ":latest"
+    normalized_registry_name = normalize_wandb_artifact_path(registry_name)
+    # load the motion file from the wandb registry
     import pathlib
 
     import wandb
 
     api = wandb.Api()
-    artifact = api.artifact(registry_name)
+    artifact = api.artifact(normalized_registry_name)
     env_cfg.commands.motion.motion_file = str(pathlib.Path(artifact.download()) / "motion.npz")
+
+    # record wandb config if logger is wandb
+    if args_cli.logger == "wandb":
+        import sys
+        try:
+            # try to get Isaac Sim and Isaac Lab versions if possible
+            try:
+                import isaacsim
+                isaacsim_version = getattr(isaacsim, "__version__", "unknown")
+            except ImportError:
+                isaacsim_version = "unknown"
+            try:
+                import isaaclab
+                isaaclab_version = getattr(isaaclab, "__version__", "unknown")
+            except ImportError:
+                isaaclab_version = "unknown"
+            # try to get torch version
+            import torch
+            torch_version = torch.__version__
+            python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+            
+            # update wandb config
+            if wandb.run is not None:
+                wandb.config.update({
+                    "task": args_cli.task,
+                    "registry_name": args_cli.registry_name,
+                    "normalized_registry_name": normalized_registry_name,
+                    "num_envs": env_cfg.scene.num_envs,
+                    "max_iterations": agent_cfg.max_iterations,
+                    "seed": agent_cfg.seed,
+                    "run_name": args_cli.run_name,
+                    "log_project_name": args_cli.log_project_name,
+                    "isaacsim_version": isaacsim_version,
+                    "isaaclab_version": isaaclab_version,
+                    "rsl_rl_version": installed_version,
+                    "torch_version": torch_version,
+                    "python_version": python_version,
+                }, allow_val_change=True)
+            else:
+                print("[WARN] wandb.run is None, not recording config.")
+        except Exception as e:
+            print(f"[WARN] Failed to record wandb config: {e}")
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)

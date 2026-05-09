@@ -12,8 +12,8 @@ class G1FlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
     obs_groups = {"actor": ["policy"], "critic": ["critic"]}
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_hidden_dims=[512, 256, 128],
-        critic_hidden_dims=[512, 256, 128],
+        actor_hidden_dims=[1024,512, 256],
+        critic_hidden_dims=[1024, 512, 256],
         activation="elu",
         actor_obs_normalization=True,
         critic_obs_normalization=True,
