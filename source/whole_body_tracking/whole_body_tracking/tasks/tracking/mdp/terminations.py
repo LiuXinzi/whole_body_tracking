@@ -22,8 +22,9 @@ def bad_anchor_pos(env: ManagerBasedRLEnv, command_name: str, threshold: float) 
 
 def bad_anchor_pos_z_only(env: ManagerBasedRLEnv, command_name: str, threshold: float) -> torch.Tensor:
     command: MotionCommand = env.command_manager.get_term(command_name)
-    return torch.abs(command.anchor_pos_w[:, -1] - command.robot_anchor_pos_w[:, -1]) > threshold
-
+    z_error = torch.abs(command.anchor_pos_w[:, -1] - command.robot_anchor_pos_w[:, -1]) > threshold
+    x_error = torch.abs(command.anchor_pos_w[:, 0] - command.robot_anchor_pos_w[:, 0]) > threshold
+    return torch.logical_or(z_error, x_error)
 
 def bad_anchor_ori(
     env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg, command_name: str, threshold: float

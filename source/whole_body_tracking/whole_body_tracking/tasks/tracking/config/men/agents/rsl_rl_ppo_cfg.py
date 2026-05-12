@@ -4,16 +4,16 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 
 @configclass
 class MenFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
-    num_steps_per_env = 24
+    num_steps_per_env = 32
     max_iterations = 30000
-    save_interval = 500
+    save_interval = 1000
     experiment_name = "men_flat"
     empirical_normalization = True
     obs_groups = {"actor": ["policy"], "critic": ["critic"]}
     policy = RslRlPpoActorCriticCfg(
         init_noise_std=1.0,
-        actor_hidden_dims=[1024, 512, 256],
-        critic_hidden_dims=[1024, 512, 256],
+        actor_hidden_dims=[512, 256,128],
+        critic_hidden_dims=[512, 256,128],
         activation="elu",
         actor_obs_normalization=True,
         critic_obs_normalization=True,
@@ -23,9 +23,9 @@ class MenFlatPPORunnerCfg(RslRlOnPolicyRunnerCfg):
         use_clipped_value_loss=True,
         clip_param=0.2,
         entropy_coef=0.005,
-        num_learning_epochs=5,
+        num_learning_epochs=8,
         num_mini_batches=4,
-        learning_rate=1.0e-3,
+        learning_rate=1.0e-4,
         schedule="adaptive",
         gamma=0.99,
         lam=0.95,
